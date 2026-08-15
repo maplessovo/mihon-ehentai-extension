@@ -97,6 +97,11 @@ ehentai/src/main/kotlin/eu/kanade/tachiyomi/extension/en/ehentai/
 站点结构核对、参数语义（`f_cats` 排除掩码、游标分页、新日期格式等）与文档差异，见
 [`VERIFICATION.md`](VERIFICATION.md)。
 
+## 致谢 / Credits
+
+本项目在开发过程中使用了 **DeepSeek AI** 对话式人工智能辅助完成代码编写、调试与文档整理
+（`PROMPT.md`/`SELF-TEST.md` 记录了相关开发过程，未随仓库发布）。
+
 ## License / 免责
 
 仅实现站点公开允许的浏览/搜索/阅读能力；exhentai 内容需要用户自行提供账号 Cookie，
