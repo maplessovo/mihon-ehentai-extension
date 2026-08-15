@@ -1,0 +1,13 @@
+{
+  "pkg": "eu.kanade.tachiyomi.extension.en.ehentai",
+  "apk": "tachiyomi-en.ehentai-v1.6.1.apk",
+  "lang": "en",
+  "nsfw": 1,
+  "sources": [
+    {
+      "id": 57122881048805941,
+      "baseUrl": "https://e-hentai.org",
+      "name": "E-Hentai"
+    }
+  ]
+}

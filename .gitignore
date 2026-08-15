@@ -1,0 +1,11 @@
+.gradle/
+build/
+local.properties
+.idea/
+*.iml
+.kotlin/
+.gradle-home/
+keystore/
+# AI 辅助开发记录（不发布）
+PROMPT.md
+SELF-TEST.md
