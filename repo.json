@@ -1,13 +1,9 @@
 {
-  "pkg": "eu.kanade.tachiyomi.extension.en.ehentai",
-  "apk": "tachiyomi-en.ehentai-v1.6.1.apk",
-  "lang": "en",
-  "nsfw": 1,
-  "sources": [
-    {
-      "id": 57122881048805941,
-      "baseUrl": "https://e-hentai.org",
-      "name": "E-Hentai"
-    }
-  ]
+  "index_v2": "https://raw.githubusercontent.com/xixiwan/mihon-ehentai-extension/main/index.v2.json",
+  "meta": {
+    "name": "E-Hentai (Mihon extension)",
+    "shortName": "E-Hentai",
+    "website": "https://github.com/xixiwan/mihon-ehentai-extension",
+    "signingKeyFingerprint": ""
+  }
 }
