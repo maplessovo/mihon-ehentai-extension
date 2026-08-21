@@ -33,10 +33,12 @@
             android:name="tachiyomix.contentWarning"
             android:value="2" />
 
-        <!-- Must be in the app's SUPPORTED_LIB_VERSIONS (1.4 / 1.6). -->
+        <!-- Must be in the app's SUPPORTED_LIB_VERSIONS (1.4 / 1.6).
+             Built against the classic Observable API (extensions-lib 1.4)
+             so the extension also loads in Tachimanga / old Tachiyomi. -->
         <meta-data
             android:name="tachiyomix.extensionLib"
-            android:value="1.6" />
+            android:value="1.4" />
 
     </application>
 

@@ -2,14 +2,14 @@ package eu.kanade.tachiyomi.extension.en.ehentai
 
 import eu.kanade.tachiyomi.source.model.SManga
 import eu.kanade.tachiyomi.source.model.UpdateStrategy
-import kotlinx.serialization.json.JsonObject
 
 /**
  * Minimal [SManga] implementation for unit tests.
  *
- * The compile-only extensions-lib AAR stubs `SManga.create()` (the real
- * implementation is provided by the Mihon app at runtime), so tests build
- * their own instances instead.
+ * The compile-only extensions-lib stubs `SManga.create()` (the real
+ * implementation is provided by the app at runtime), so tests build
+ * their own instances instead. Only fields present in extensions-lib
+ * 1.4 are used (`memo` does not exist in the legacy API).
  */
 class TestManga : SManga {
     override var url: String = ""
@@ -22,5 +22,4 @@ class TestManga : SManga {
     override var genre: String? = null
     override var update_strategy: UpdateStrategy = UpdateStrategy.ALWAYS_UPDATE
     override var initialized: Boolean = false
-    override var memo: JsonObject = JsonObject(emptyMap())
 }

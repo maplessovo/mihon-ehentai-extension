@@ -1,12 +1,14 @@
-# E-Hentai (Mihon extension)
+# E-Hentai (Mihon / Tachimanga extension)
 
 A [Mihon](https://mihon.app) (Tachiyomi fork) catalogue source for
 [e-hentai.org](https://e-hentai.org). NSFW content — use with the "Show NSFW
 sources" option enabled.
 
 - 语言/Language: `en` · 内容/Content: **NSFW (nsfw = 1)**
-- APK: `tachiyomi-en.ehentai-v1.6.1.apk`（`ehentai/build/outputs/apk/release/`）
-- 基于 extensions-lib **1.6**（现代 suspend API，不继承已废弃的 `ParsedHttpSource`）
+- APK: `tachiyomi-en.ehentai-v1.4.2.apk`（`ehentai/build/outputs/apk/release/`）
+- 基于 extensions-lib **1.4**（经典 Observable API）——兼容 Mihon（1.4/1.6 均支持）、
+  Tachimanga 及其他旧版 Tachiyomi 分支；若用 1.6 suspend API 构建，在其他程序会报
+  `java.lang.VerifyError`
 
 ## 功能 (Features)
 
@@ -23,16 +25,16 @@ sources" option enabled.
 
 ## 安装 (Install)
 
-1. 构建出 APK（见下），或直接使用 `ehentai/build/outputs/apk/release/tachiyomi-en.ehentai-v1.6.1.apk`。
+1. 构建出 APK（见下），或直接使用 `ehentai/build/outputs/apk/release/tachiyomi-en.ehentai-v1.4.2.apk`。
 2. Mihon → 设置 (Settings) → 扩展 (Extensions) → 右上角 `+` → **本地安装 (Local install)** → 选择 APK。
 3. 扩展列表出现 **E-Hentai (EN)**。因为 APK 是 debug 签名、不在 Mihon 的信任签名列表里，
    它会显示为「未信任」——**点击该扩展并确认信任**即可（仅首次）。
-4. 若列表里看不到：请确认 Mihon 版本支持 extensions-lib **1.6**（Mihon 0.17.6+ / 2025 年后版本；
-   扩展在清单中声明 `tachiyomix.extensionLib=1.6`，旧版应用只支持 1.4 会拒绝加载），
-   并检查 设置 → 浏览 → 「显示 NSFW 源」已开启（默认开启）。
+4. 若列表里看不到：检查 设置 → 浏览 → 「显示 NSFW 源」已开启（默认开启）。
 5. 完成后在 浏览 页选择 **E-Hentai (EN)** 源即可使用。
 
-> 也可以把本仓库作为扩展仓库（`index.json`/`repo.json` 已附带）添加。
+> 也可以把本仓库作为扩展仓库（`index.min.json` + `repo.json`/`index.v2.json` + `apk/` + `icon/` 已附带）
+> 添加。仓库地址（Mihon/Tachimanga 均可用）：
+> `https://raw.githubusercontent.com/xixiwan/mihon-ehentai-extension/main/index.min.json`
 
 ## 偏好设置 (Preferences)
 
@@ -53,12 +55,12 @@ sources" option enabled.
 
 - JDK 17+（本工程在 JDK 25 上验证）
 - Android SDK（`compileSdk 36`、`minSdk 26`、build-tools 36；`local.properties` 或 `ANDROID_HOME` 指定 SDK 路径）
-- 网络能访问 `google()` / `mavenCentral()` / `jitpack.io`（依赖 `com.github.keiyoushi:extensions-lib` 由 JitPack 构建，首次较慢）
+- 网络能访问 `google()` / `mavenCentral()` / `jitpack.io`（依赖 `com.github.tachiyomiorg:extensions-lib` 由 JitPack 构建，首次较慢）
 - 国内网络不可直连时请配置代理：`GRADLE_OPTS="-Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=7890 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=7890"`
 
 ```bash
 ./gradlew :ehentai:assembleRelease
-# 产物：ehentai/build/outputs/apk/release/tachiyomi-en.ehentai-v1.6.1.apk
+# 产物：ehentai/build/outputs/apk/release/tachiyomi-en.ehentai-v1.4.2.apk
 ```
 
 运行解析/筛选单元测试（使用实测保存的 HTML 快照，离线可跑）：
@@ -84,7 +86,7 @@ sources" option enabled.
 
 ```
 ehentai/src/main/kotlin/eu/kanade/tachiyomi/extension/en/ehentai/
-├── Ehentai.kt            # 主类（HttpSource + ConfigurableSource，现代 suspend 写法）
+├── Ehentai.kt            # 主类（HttpSource + ConfigurableSource，Observable 写法，lib 1.4 兼容 API）
 ├── EhentaiParsers.kt     # 纯解析函数（Jsoup），可单测
 ├── EhentaiFilters.kt     # 筛选定义 + buildSearchParams 纯函数
 ├── EhentaiPreferences.kt # 偏好读写 + setupPreferenceScreen

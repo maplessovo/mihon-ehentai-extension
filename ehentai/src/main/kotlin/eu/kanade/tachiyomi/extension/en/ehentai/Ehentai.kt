@@ -1,23 +1,20 @@
 package eu.kanade.tachiyomi.extension.en.ehentai
 
 import eu.kanade.tachiyomi.network.GET
-import eu.kanade.tachiyomi.network.awaitSuccess
 import eu.kanade.tachiyomi.source.ConfigurableSource
 import eu.kanade.tachiyomi.source.model.FilterList
 import eu.kanade.tachiyomi.source.model.MangasPage
 import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.source.model.SChapter
 import eu.kanade.tachiyomi.source.model.SManga
-import eu.kanade.tachiyomi.source.model.SMangaUpdate
 import eu.kanade.tachiyomi.source.online.HttpSource
-import kotlinx.coroutines.async
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.supervisorScope
 import okhttp3.Headers
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.Response
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
+import rx.Observable
 import androidx.preference.PreferenceScreen
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
@@ -25,10 +22,17 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 
 /**
- * E-Hentai (e-hentai.org) source for Mihon.
+ * E-Hentai (e-hentai.org) source for Mihon / Tachimanga / Tachiyomi forks.
  *
- * Implemented against the site's current HTML (verified 2026-08-15, see
- * VERIFICATION.md). Highlights:
+ * Built against extensions-lib 1.4 (tachiyomiorg, the classic RxJava 1
+ * Observable API), so it loads in every app that supports the 1.4 extension
+ * format: Mihon (lib 1.4 is in its SUPPORTED_LIB_VERSIONS), Tachimanga and
+ * older Tachiyomi forks. The legacy API is intentionally used because the
+ * modern suspend API (keiyoushi, lib 1.6) is not understood by Tachimanga
+ * and other apps — that mismatch shows up as `java.lang.VerifyError` when
+ * loading the class.
+ *
+ * Site facts (verified 2026-08-15, see VERIFICATION.md):
  * - list/search/popular pages share one row structure (`table.itg tr` rows);
  * - search pagination is cursor based (`next`/`prev` parameters) — `page=N`
  *   is ignored by the server, so the cursor of the previous request is reused;
@@ -63,94 +67,89 @@ class Ehentai : HttpSource(), ConfigurableSource {
             .build()
     }
 
-    /** Cursor of the next results page, keyed by the base search URL. */
+    /** Cursor of the next results page, keyed by the requested search URL. */
     private val nextPageCursors = ConcurrentHashMap<String, String>()
 
     /** Timestamp of the last page-type request, for the request-interval preference. */
     private val lastPageRequestAt = AtomicLong(0L)
 
     // ------------------------------------------------------------------
-    // Browse / search
+    // Popular
     // ------------------------------------------------------------------
 
-    override suspend fun getPopularManga(page: Int): MangasPage {
-        val url = "$baseUrl/popular"
-        val html = fetchPageHtml(url)
-        return MangasPage(parseMangaList(Jsoup.parse(html, url)).onEach { it.setUrlWithoutDomain(it.url) }, false)
+    override fun popularMangaRequest(page: Int): Request = GET("$baseUrl/popular", pageHeaders())
+
+    override fun popularMangaParse(response: Response): MangasPage {
+        val url = response.request.url.toString()
+        val html = response.body.string()
+        val mangas = parseMangaList(Jsoup.parse(html, url)).onEach { it.setUrlWithoutDomain(it.url) }
+        return MangasPage(mangas, false)
     }
 
-    override suspend fun getLatestUpdates(page: Int): MangasPage {
-        throw UnsupportedOperationException("Not used")
-    }
+    // ------------------------------------------------------------------
+    // Search (cursor based: the server ignores `page=N` and returns
+    // `var nexturl="..."` instead; the cursor of the previous request is
+    // reused, keyed by the URL that produced it)
+    // ------------------------------------------------------------------
 
-    override suspend fun getSearchManga(page: Int, query: String, filters: FilterList): MangasPage {
+    override fun searchMangaRequest(page: Int, query: String, filters: FilterList): Request {
         val searchUrl = buildSearchParams(baseUrl, query, filters).build().toString()
+        // A plain browse of the source (blank query, no filters) shows popular.
         if (query.isBlank() && filters.hasNoActiveFilters()) {
-            return getPopularManga(page)
+            return popularMangaRequest(page)
         }
-
         val url = if (page <= 1) searchUrl else nextPageCursors[searchUrl] ?: searchUrl
-        val html = fetchPageHtml(url)
+        return GET(url, pageHeaders())
+    }
+
+    override fun searchMangaParse(response: Response): MangasPage {
+        val url = response.request.url.toString()
+        val html = response.body.string()
         val nextUrl = parseNextUrl(html)
         if (nextUrl != null) {
-            nextPageCursors[searchUrl] = nextUrl
+            nextPageCursors[url] = nextUrl
         } else {
-            nextPageCursors.remove(searchUrl)
+            nextPageCursors.remove(url)
         }
         val mangas = parseMangaList(Jsoup.parse(html, url)).onEach { it.setUrlWithoutDomain(it.url) }
         return MangasPage(mangas, hasNextPage(html))
     }
 
     // ------------------------------------------------------------------
+    // Latest (not supported)
+    // ------------------------------------------------------------------
+
+    override fun latestUpdatesRequest(page: Int): Request = throw UnsupportedOperationException("Not used")
+
+    override fun latestUpdatesParse(response: Response): MangasPage = throw UnsupportedOperationException("Not used")
+
+    // ------------------------------------------------------------------
     // Details & chapters (one gallery = one chapter)
     // ------------------------------------------------------------------
 
-    override suspend fun getMangaUpdate(
-        manga: SManga,
-        chapters: List<SChapter>,
-        fetchDetails: Boolean,
-        fetchChapters: Boolean,
-    ): SMangaUpdate = supervisorScope {
-        val galleryDoc = if (fetchDetails || fetchChapters) {
-            async { fetchGalleryDocument(manga) }
-        } else {
-            null
-        }
-
-        val updatedManga = if (fetchDetails) {
-            async { parseGalleryDetails(galleryDoc!!.await(), manga) }
-        } else {
-            null
-        }
-
-        val updatedChapters = if (fetchChapters) {
-            async {
-                val doc = galleryDoc!!.await()
-                listOf(SChapter.create().apply {
-                    url = manga.url
-                    name = "Full Gallery"
-                    chapter_number = 1f
-                    date_upload = parsePostedDate(doc)
-                    scanlator = null
-                })
-            }
-        } else {
-            null
-        }
-
-        SMangaUpdate(updatedManga?.await() ?: manga, updatedChapters?.await() ?: chapters)
+    override fun mangaDetailsParse(response: Response): SManga {
+        val url = response.request.url.toString()
+        return parseGalleryDetails(Jsoup.parse(response.body.string(), url), SManga.create())
     }
 
-    private suspend fun fetchGalleryDocument(manga: SManga): Document {
-        val url = "$baseUrl${manga.url}"
-        return Jsoup.parse(fetchPageHtml(url), url)
+    override fun chapterListParse(response: Response): List<SChapter> {
+        val url = response.request.url.toString()
+        val doc = Jsoup.parse(response.body.string(), url)
+        val chapter = SChapter.create().apply {
+            name = "Full Gallery"
+            chapter_number = 1f
+            date_upload = parsePostedDate(doc)
+            scanlator = null
+        }
+        chapter.setUrlWithoutDomain(url)
+        return listOf(chapter)
     }
 
     // ------------------------------------------------------------------
     // Pages
     // ------------------------------------------------------------------
 
-    override suspend fun getPageList(chapter: SChapter): List<Page> {
+    override fun fetchPageList(chapter: SChapter): Observable<List<Page>> = Observable.fromCallable {
         val galleryUrl = "$baseUrl${chapter.url}"
         val viewerUrls = ArrayList<String>()
         var thumbnailPage = 0
@@ -173,16 +172,32 @@ class Ehentai : HttpSource(), ConfigurableSource {
         }
 
         val preResolve = prefs.preResolveImages
-        return viewerUrls.mapIndexed { index, viewerUrl ->
+        viewerUrls.mapIndexed { index, viewerUrl ->
             if (preResolve) {
-                Page(index, url = viewerUrl, imageUrl = getImageUrl(Page(index, viewerUrl)))
+                Page(index, url = viewerUrl, imageUrl = resolveImageUrl(Page(index, viewerUrl)))
             } else {
                 Page(index, url = viewerUrl)
             }
         }
     }
 
-    override suspend fun getImageUrl(page: Page): String {
+    // Not used (fetchPageList is overridden), kept for the abstract API.
+    override fun pageListParse(response: Response): List<Page> {
+        val url = response.request.url.toString()
+        val links = parseViewerLinks(Jsoup.parse(response.body.string(), url))
+        return links.mapIndexed { index, viewerUrl -> Page(index, url = viewerUrl) }
+    }
+
+    override fun imageUrlRequest(page: Page): Request = GET(page.url, pageHeaders())
+
+    override fun imageUrlParse(response: Response): String {
+        val url = response.request.url.toString()
+        val doc = Jsoup.parse(response.body.string(), url)
+        val wantOriginal = prefs.wantOriginal && prefs.cookie.isNotEmpty()
+        return parseImageUrl(doc, wantOriginal)
+    }
+
+    private fun resolveImageUrl(page: Page): String {
         val html = fetchPageHtml(page.url)
         val doc = Jsoup.parse(html, page.url)
         val wantOriginal = prefs.wantOriginal && prefs.cookie.isNotEmpty()
@@ -221,12 +236,16 @@ class Ehentai : HttpSource(), ConfigurableSource {
      * Applies the exhentai cookie check, the request-interval throttle and
      * a page Referer. Image downloads do NOT go through this helper.
      */
-    private suspend fun fetchPageHtml(url: String): String {
+    private fun fetchPageHtml(url: String): String {
         checkExhentaiAccess()
         throttlePageRequest()
         return try {
-            val response = client.newCall(GET(url, pageHeaders())).awaitSuccess()
-            response.use { it.body.string() }
+            client.newCall(GET(url, pageHeaders())).execute().use { response ->
+                if (!response.isSuccessful) {
+                    throw Exception("HTTP ${response.code}")
+                }
+                response.body.string()
+            }
         } catch (e: Exception) {
             throw Exception(
                 "Failed to fetch $url (${e.message}). Check your network connection and the " +
@@ -255,7 +274,7 @@ class Ehentai : HttpSource(), ConfigurableSource {
      * The first request after a pause is not delayed; subsequent ones wait so
      * that the gap between request starts is at least the configured interval.
      */
-    private suspend fun throttlePageRequest() {
+    private fun throttlePageRequest() {
         val intervalMs = prefs.requestIntervalMs
         if (intervalMs <= 0L) return
         while (true) {
@@ -265,7 +284,7 @@ class Ehentai : HttpSource(), ConfigurableSource {
             if (waitMs <= 0L) {
                 if (lastPageRequestAt.compareAndSet(last, now)) return
             } else {
-                delay(waitMs)
+                Thread.sleep(waitMs)
             }
         }
     }
