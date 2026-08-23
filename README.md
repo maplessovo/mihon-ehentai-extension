@@ -5,7 +5,7 @@ A [Mihon](https://mihon.app) (Tachiyomi fork) catalogue source for
 sources" option enabled.
 
 - 语言/Language: `en` · 内容/Content: **NSFW (nsfw = 1)**
-- APK: `tachiyomi-en.ehentai-v1.4.2.apk`（`ehentai/build/outputs/apk/release/`）
+- APK: `tachiyomi-en.ehentai-v1.4.3.apk`（`ehentai/build/outputs/apk/release/`）
 - 基于 extensions-lib **1.4**（经典 Observable API）——兼容 Mihon（1.4/1.6 均支持）、
   Tachimanga 及其他旧版 Tachiyomi 分支；若用 1.6 suspend API 构建，在其他程序会报
   `java.lang.VerifyError`
@@ -25,7 +25,7 @@ sources" option enabled.
 
 ## 安装 (Install)
 
-1. 构建出 APK（见下），或直接使用 `ehentai/build/outputs/apk/release/tachiyomi-en.ehentai-v1.4.2.apk`。
+1. 构建出 APK（见下），或直接使用 `ehentai/build/outputs/apk/release/tachiyomi-en.ehentai-v1.4.3.apk`。
 2. Mihon → 设置 (Settings) → 扩展 (Extensions) → 右上角 `+` → **本地安装 (Local install)** → 选择 APK。
 3. 扩展列表出现 **E-Hentai (EN)**。因为 APK 是 debug 签名、不在 Mihon 的信任签名列表里，
    它会显示为「未信任」——**点击该扩展并确认信任**即可（仅首次）。
@@ -42,12 +42,15 @@ sources" option enabled.
 
 1. **站点域名 (Domain)** — `e-hentai.org`（默认）/ `exhentai.org`（必须登录 Cookie）/ 自定义镜像；
 2. **自定义域名** — 仅在域名选「自定义」时生效；
-3. **登录 Cookie** — 格式 `ipb_member_id=xxx; ipb_pass_hash=yyy; igneous=zzz`，留空不发送；
-   exhentai.org 必填；**敏感信息仅存本机 SharedPreferences，不会出现在日志或网络请求之外**（拦截器只对 e-hentai.org / exhentai.org 域名附加）；
-4. **User-Agent** — 默认浏览器 UA；被 Cloudflare 拦截（403/503）时可更换；
-5. **图片质量** — 标准图（默认）/ 原图（需有效 Cookie）；
-6. **预解析图片地址** — 默认关；开启后进入阅读前即解析全部图片（大画廊变慢）；
-7. **请求间隔** — 页面类请求节流，默认无。
+3. **会员 ID (Member ID)** — `ipb_member_id` 的值；留空则不发送登录 Cookie；
+4. **密码哈希 (Pass Hash)** — `ipb_pass_hash` 的值；exhentai.org 必填；
+5. **Ignéous Cookie（可选）** — `igneous` 的值；大多数账号无需填写；
+   （v1.4.3 起登录 Cookie 拆分为以上三项分别输入；旧版整串 Cookie 会在首次使用时自动迁移。）
+   **敏感信息仅存本机 SharedPreferences，不会出现在日志或网络请求之外**（拦截器只对 e-hentai.org / exhentai.org 域名附加）；
+6. **User-Agent** — 默认浏览器 UA；被 Cloudflare 拦截（403/503）时可更换；
+7. **图片质量** — 标准图（默认）/ 原图（需有效 Cookie）；
+8. **预解析图片地址** — 默认关；开启后进入阅读前即解析全部图片（大画廊变慢）；
+9. **请求间隔** — 页面类请求节流，默认无。
 
 ## 构建 (Build)
 
@@ -60,7 +63,7 @@ sources" option enabled.
 
 ```bash
 ./gradlew :ehentai:assembleRelease
-# 产物：ehentai/build/outputs/apk/release/tachiyomi-en.ehentai-v1.4.2.apk
+# 产物：ehentai/build/outputs/apk/release/tachiyomi-en.ehentai-v1.4.3.apk
 ```
 
 运行解析/筛选单元测试（使用实测保存的 HTML 快照，离线可跑）：

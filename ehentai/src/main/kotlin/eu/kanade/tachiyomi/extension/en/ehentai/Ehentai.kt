@@ -263,8 +263,8 @@ class Ehentai : HttpSource(), ConfigurableSource {
     private fun checkExhentaiAccess() {
         if (prefs.isExhentai() && prefs.cookie.isEmpty()) {
             throw Exception(
-                "exhentai.org requires a login cookie. Fill in the '登录 Cookie' preference " +
-                    "(ipb_member_id / ipb_pass_hash / igneous) in the source settings first.",
+                "exhentai.org requires a login cookie. Fill in the 会员 ID / 密码哈希 " +
+                    "(ipb_member_id / ipb_pass_hash) preferences in the source settings first.",
             )
         }
     }

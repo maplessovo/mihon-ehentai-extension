@@ -13,10 +13,10 @@ android {
         applicationId = "eu.kanade.tachiyomi.extension.en.ehentai"
         minSdk = 26
         targetSdk = 36
-        // versionCode bumped so the lib-1.4 build replaces the old lib-1.6
-        // build (Mihon only offers an update when code or lib version grows).
-        versionCode = 2
-        versionName = "1.4.2"
+        // versionCode grows with every release; the version name starts with
+        // the lib version (1.4) so legacy apps parse it correctly.
+        versionCode = 3
+        versionName = "1.4.3"
     }
 
     compileOptions {
@@ -62,7 +62,7 @@ android {
 androidComponents {
     onVariants(selector().withBuildType("release")) { variant ->
         variant.outputs.forEach { output ->
-            output.outputFileName.set("tachiyomi-en.ehentai-v1.4.2.apk")
+            output.outputFileName.set("tachiyomi-en.ehentai-v1.4.3.apk")
         }
     }
 }

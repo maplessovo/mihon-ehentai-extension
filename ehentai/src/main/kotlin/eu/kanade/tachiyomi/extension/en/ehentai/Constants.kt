@@ -20,7 +20,17 @@ object Constants {
     // ------------------------------------------------------------------
     const val PREF_DOMAIN = "domain"
     const val PREF_CUSTOM_DOMAIN = "custom_domain"
-    const val PREF_COOKIE = "cookie"
+
+    // Login cookie split into three parts (since v1.4.3). Each part is
+    // entered separately; the full `ipb_member_id=…; ipb_pass_hash=…;
+    // igneous=…` string is assembled in EhentaiPreferences.
+    const val PREF_MEMBER_ID = "member_id"
+    const val PREF_PASS_HASH = "pass_hash"
+    const val PREF_IGNEOUS = "igneous"
+
+    /** Legacy combined-cookie preference (pre-1.4.3), migrated once on first access. */
+    const val PREF_COOKIE_LEGACY = "cookie"
+
     const val PREF_USER_AGENT = "user_agent"
     const val PREF_IMAGE_QUALITY = "image_quality"
     const val PREF_PRE_RESOLVE_IMAGES = "pre_resolve_images"

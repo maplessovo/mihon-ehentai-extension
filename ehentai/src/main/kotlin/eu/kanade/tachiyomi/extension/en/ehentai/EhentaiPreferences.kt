@@ -11,10 +11,13 @@ import eu.kanade.tachiyomi.extension.en.ehentai.Constants.DOMAIN_CUSTOM
 import eu.kanade.tachiyomi.extension.en.ehentai.Constants.DOMAIN_EHENTAI
 import eu.kanade.tachiyomi.extension.en.ehentai.Constants.DOMAIN_EXHENTAI
 import eu.kanade.tachiyomi.extension.en.ehentai.Constants.EXHENTAI_BASE_URL
-import eu.kanade.tachiyomi.extension.en.ehentai.Constants.PREF_COOKIE
+import eu.kanade.tachiyomi.extension.en.ehentai.Constants.PREF_COOKIE_LEGACY
 import eu.kanade.tachiyomi.extension.en.ehentai.Constants.PREF_CUSTOM_DOMAIN
 import eu.kanade.tachiyomi.extension.en.ehentai.Constants.PREF_DOMAIN
+import eu.kanade.tachiyomi.extension.en.ehentai.Constants.PREF_IGNEOUS
 import eu.kanade.tachiyomi.extension.en.ehentai.Constants.PREF_IMAGE_QUALITY
+import eu.kanade.tachiyomi.extension.en.ehentai.Constants.PREF_MEMBER_ID
+import eu.kanade.tachiyomi.extension.en.ehentai.Constants.PREF_PASS_HASH
 import eu.kanade.tachiyomi.extension.en.ehentai.Constants.PREF_PRE_RESOLVE_IMAGES
 import eu.kanade.tachiyomi.extension.en.ehentai.Constants.PREF_REQUEST_INTERVAL
 import eu.kanade.tachiyomi.extension.en.ehentai.Constants.PREF_USER_AGENT
@@ -46,9 +49,56 @@ class EhentaiPreferences(private val preferences: SharedPreferences) {
     val domainValue: String
         get() = preferences.getString(PREF_DOMAIN, DOMAIN_EHENTAI) ?: DOMAIN_EHENTAI
 
-    /** Login cookie string, e.g. `ipb_member_id=…; ipb_pass_hash=…; igneous=…`. Empty = not logged in. */
+    /** E-Hentai member id (`ipb_member_id`). Empty = not logged in. */
+    val memberId: String
+        get() = preferences.getString(PREF_MEMBER_ID, null)?.trim().orEmpty()
+
+    /** E-Hentai password hash (`ipb_pass_hash`). Empty = not logged in. */
+    val passHash: String
+        get() = preferences.getString(PREF_PASS_HASH, null)?.trim().orEmpty()
+
+    /** E-Hentai igneous cookie (optional for most accounts). */
+    val igneous: String
+        get() = preferences.getString(PREF_IGNEOUS, null)?.trim().orEmpty()
+
+    /**
+     * Full login cookie string assembled from the three parts, e.g.
+     * `ipb_member_id=…; ipb_pass_hash=…; igneous=…`. Only non-empty parts
+     * are included; empty when not logged in.
+     */
     val cookie: String
-        get() = preferences.getString(PREF_COOKIE, "")?.trim().orEmpty()
+        get() {
+            migrateLegacyCookie()
+            return listOf(
+                memberId.takeIf { it.isNotEmpty() }?.let { "ipb_member_id=$it" },
+                passHash.takeIf { it.isNotEmpty() }?.let { "ipb_pass_hash=$it" },
+                igneous.takeIf { it.isNotEmpty() }?.let { "igneous=$it" },
+            ).filterNotNull().joinToString("; ")
+        }
+
+    /**
+     * One-time migration from the pre-1.4.3 combined `cookie` preference.
+     * Runs before the parts are read; no-op once any of the three keys
+     * exists (i.e. the user has already saved values via the new UI).
+     */
+    private fun migrateLegacyCookie() {
+        if (preferences.contains(PREF_MEMBER_ID) || preferences.contains(PREF_PASS_HASH) || preferences.contains(PREF_IGNEOUS)) {
+            return
+        }
+        val legacy = preferences.getString(PREF_COOKIE_LEGACY, null)?.trim().orEmpty()
+        val match = LEGACY_COOKIE_REGEX.find(legacy) ?: return
+        preferences.edit()
+            .putString(PREF_MEMBER_ID, match.groupValues[1])
+            .putString(PREF_PASS_HASH, match.groupValues[2])
+            .apply()
+        match.groupValues.getOrNull(3)?.takeIf { it.isNotBlank() }?.let {
+            preferences.edit().putString(PREF_IGNEOUS, it.trim()).apply()
+        }
+        preferences.edit().remove(PREF_COOKIE_LEGACY).apply()
+    }
+
+    private val LEGACY_COOKIE_REGEX =
+        Regex("""ipb_member_id\s*=\s*([^;\s]+)\s*;\s*ipb_pass_hash\s*=\s*([^;\s]+)(?:\s*;\s*igneous\s*=\s*([^;\s]+))?""")
 
     val userAgent: String
         get() = preferences.getString(PREF_USER_AGENT, DEFAULT_USER_AGENT)
@@ -99,12 +149,24 @@ class EhentaiPreferences(private val preferences: SharedPreferences) {
         }.let { screen.addPreference(it) }
 
         EditTextPreference(context).apply {
-            key = PREF_COOKIE
-            title = "登录 Cookie"
-            summary = "格式：ipb_member_id=xxx; ipb_pass_hash=yyy; igneous=zzz。留空则不发送。exhentai.org 必填。" +
-                "敏感信息仅保存在本机，请勿分享。"
-            dialogTitle = "登录 Cookie"
-            setDefaultValue("")
+            key = PREF_MEMBER_ID
+            title = "会员 ID (Member ID)"
+            summary = "ipb_member_id 的值。留空则不发送登录 Cookie。敏感信息仅保存在本机，请勿分享。"
+            dialogTitle = "会员 ID (ipb_member_id)"
+        }.let { screen.addPreference(it) }
+
+        EditTextPreference(context).apply {
+            key = PREF_PASS_HASH
+            title = "密码哈希 (Pass Hash)"
+            summary = "ipb_pass_hash 的值。exhentai.org 必填。"
+            dialogTitle = "密码哈希 (ipb_pass_hash)"
+        }.let { screen.addPreference(it) }
+
+        EditTextPreference(context).apply {
+            key = PREF_IGNEOUS
+            title = "Ignéous Cookie（可选）"
+            summary = "igneous 的值；大多数账号无需填写。"
+            dialogTitle = "Ignéous (igneous)"
         }.let { screen.addPreference(it) }
 
         EditTextPreference(context).apply {
