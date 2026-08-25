@@ -5,7 +5,7 @@ A [Mihon](https://mihon.app) (Tachiyomi fork) catalogue source for
 sources" option enabled.
 
 - 语言/Language: `en` · 内容/Content: **NSFW (nsfw = 1)**
-- APK: `tachiyomi-en.ehentai-v1.4.3.apk`（`ehentai/build/outputs/apk/release/`）
+- APK: `tachiyomi-en.ehentai-v1.4.4.apk`（`ehentai/build/outputs/apk/release/`）
 - 基于 extensions-lib **1.4**（经典 Observable API）——兼容 Mihon（1.4/1.6 均支持）、
   Tachimanga 及其他旧版 Tachiyomi 分支；若用 1.6 suspend API 构建，在其他程序会报
   `java.lang.VerifyError`
@@ -25,7 +25,7 @@ sources" option enabled.
 
 ## 安装 (Install)
 
-1. 构建出 APK（见下），或直接使用 `ehentai/build/outputs/apk/release/tachiyomi-en.ehentai-v1.4.3.apk`。
+1. 构建出 APK（见下），或直接使用 `ehentai/build/outputs/apk/release/tachiyomi-en.ehentai-v1.4.4.apk`。
 2. Mihon → 设置 (Settings) → 扩展 (Extensions) → 右上角 `+` → **本地安装 (Local install)** → 选择 APK。
 3. 扩展列表出现 **E-Hentai (EN)**。因为 APK 是 debug 签名、不在 Mihon 的信任签名列表里，
    它会显示为「未信任」——**点击该扩展并确认信任**即可（仅首次）。
@@ -63,7 +63,7 @@ sources" option enabled.
 
 ```bash
 ./gradlew :ehentai:assembleRelease
-# 产物：ehentai/build/outputs/apk/release/tachiyomi-en.ehentai-v1.4.3.apk
+# 产物：ehentai/build/outputs/apk/release/tachiyomi-en.ehentai-v1.4.4.apk
 ```
 
 运行解析/筛选单元测试（使用实测保存的 HTML 快照，离线可跑）：

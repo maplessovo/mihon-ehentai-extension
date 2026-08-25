@@ -19,8 +19,8 @@ android {
         targetSdk = 36
         // versionCode grows with every release; the version name starts with
         // the lib version (1.4) so legacy apps parse it correctly.
-        versionCode = 3
-        versionName = "1.4.3"
+        versionCode = 4
+        versionName = "1.4.4"
     }
 
     compileOptions {
@@ -66,7 +66,7 @@ android {
 androidComponents {
     onVariants(selector().withBuildType("release")) { variant ->
         variant.outputs.forEach { output ->
-            output.outputFileName.set("tachiyomi-en.ehentai-v1.4.3.apk")
+            output.outputFileName.set("tachiyomi-en.ehentai-v1.4.4.apk")
         }
     }
 }
