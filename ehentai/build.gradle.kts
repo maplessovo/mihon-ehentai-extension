@@ -11,7 +11,11 @@ android {
 
     defaultConfig {
         applicationId = "eu.kanade.tachiyomi.extension.en.ehentai"
-        minSdk = 26
+        // minSdk 21: Tachimanga's JVM-based extension runtime cannot verify
+        // bytecode that relies on `invokedynamic` (string concat / lambdas
+        // stay native when minSdk >= 26). With 21, D8 desugars those to
+        // classic bytecode, avoiding java.lang.VerifyError there.
+        minSdk = 21
         targetSdk = 36
         // versionCode grows with every release; the version name starts with
         // the lib version (1.4) so legacy apps parse it correctly.
