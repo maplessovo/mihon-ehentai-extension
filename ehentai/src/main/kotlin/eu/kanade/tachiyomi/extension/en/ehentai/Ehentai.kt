@@ -67,8 +67,11 @@ class Ehentai : HttpSource(), ConfigurableSource {
             .build()
     }
 
-    /** Cursor of the next results page, keyed by the requested search URL. */
+    /** Cursor of the next results page, keyed by the stable browse/search owner URL. */
     private val nextPageCursors = ConcurrentHashMap<String, String>()
+
+    /** Maps a cursor request back to the browse/search URL that owns its paging session. */
+    private val cursorOwners = ConcurrentHashMap<String, String>()
 
     /** Timestamp of the last page-type request, for the request-interval preference. */
     private val lastPageRequestAt = AtomicLong(0L)
@@ -77,14 +80,16 @@ class Ehentai : HttpSource(), ConfigurableSource {
     // Popular
     // ------------------------------------------------------------------
 
-    override fun popularMangaRequest(page: Int): Request = GET("$baseUrl/popular", pageHeaders())
-
-    override fun popularMangaParse(response: Response): MangasPage {
-        val url = response.request.url.toString()
-        val html = response.body.string()
-        val mangas = parseMangaList(Jsoup.parse(html, url)).onEach { it.setUrlWithoutDomain(it.url) }
-        return MangasPage(mangas, false)
+    override fun popularMangaRequest(page: Int): Request {
+        val owner = "popular:$baseUrl"
+        if (page <= 1) nextPageCursors.remove(owner)
+        val url = if (page <= 1) "$baseUrl/popular" else nextPageCursors[owner] ?: baseUrl
+        return GET(url, pageHeaders()).also { request ->
+            cursorOwners[request.url.toString()] = owner
+        }
     }
+
+    override fun popularMangaParse(response: Response): MangasPage = parseListingPage(response)
 
     // ------------------------------------------------------------------
     // Search (cursor based: the server ignores `page=N` and returns
@@ -98,22 +103,14 @@ class Ehentai : HttpSource(), ConfigurableSource {
         if (query.isBlank() && filters.hasNoActiveFilters()) {
             return popularMangaRequest(page)
         }
+        if (page <= 1) nextPageCursors.remove(searchUrl)
         val url = if (page <= 1) searchUrl else nextPageCursors[searchUrl] ?: searchUrl
-        return GET(url, pageHeaders())
+        return GET(url, pageHeaders()).also { request ->
+            cursorOwners[request.url.toString()] = searchUrl
+        }
     }
 
-    override fun searchMangaParse(response: Response): MangasPage {
-        val url = response.request.url.toString()
-        val html = response.body.string()
-        val nextUrl = parseNextUrl(html)
-        if (nextUrl != null) {
-            nextPageCursors[url] = nextUrl
-        } else {
-            nextPageCursors.remove(url)
-        }
-        val mangas = parseMangaList(Jsoup.parse(html, url)).onEach { it.setUrlWithoutDomain(it.url) }
-        return MangasPage(mangas, hasNextPage(html))
-    }
+    override fun searchMangaParse(response: Response): MangasPage = parseListingPage(response)
 
     // ------------------------------------------------------------------
     // Latest (not supported)
@@ -255,6 +252,56 @@ class Ehentai : HttpSource(), ConfigurableSource {
         }
     }
 
+    /**
+     * Parses a browse/search page and keeps its cursor attached to the original
+     * request. When keyword filtering makes a page sparse, a few upstream pages
+     * are consumed immediately so Tachimanga still receives enough visible rows
+     * to continue its infinite-scroll paging.
+     *
+     * `/popular` has no server-side next cursor. Its second app page therefore
+     * continues from the regular front-page listing, which is cursor-paginated.
+     */
+    private fun parseListingPage(response: Response): MangasPage {
+        val requestUrl = response.request.url.toString()
+        val owner = cursorOwners.remove(requestUrl) ?: requestUrl
+        var pageUrl = requestUrl
+        var html = response.body.string()
+        var nextUrl = if (response.request.url.encodedPath == "/popular") baseUrl else parseNextUrl(html)
+        val blockedKeywords = prefs.blockedKeywords
+        val mangasByUrl = LinkedHashMap<String, SManga>()
+        var extraPages = 0
+
+        while (true) {
+            filterMangasByKeywords(
+                parseMangaList(Jsoup.parse(html, pageUrl)),
+                blockedKeywords,
+            ).forEach { manga -> mangasByUrl.putIfAbsent(manga.url, manga) }
+
+            if (
+                blockedKeywords.isEmpty() ||
+                mangasByUrl.size >= FILTERED_PAGE_TARGET ||
+                nextUrl == null ||
+                extraPages >= MAX_FILTER_FILL_PAGES
+            ) {
+                break
+            }
+
+            pageUrl = nextUrl
+            html = fetchPageHtml(pageUrl)
+            nextUrl = parseNextUrl(html)
+            extraPages++
+        }
+
+        if (nextUrl != null) {
+            nextPageCursors[owner] = nextUrl
+        } else {
+            nextPageCursors.remove(owner)
+        }
+
+        val mangas = mangasByUrl.values.toList().onEach { it.setUrlWithoutDomain(it.url) }
+        return MangasPage(mangas, nextUrl != null)
+    }
+
     private fun pageHeaders(): Headers = Headers.Builder()
         .add("Referer", "$baseUrl/")
         .build()
@@ -287,5 +334,10 @@ class Ehentai : HttpSource(), ConfigurableSource {
                 Thread.sleep(waitMs)
             }
         }
+    }
+
+    private companion object {
+        const val FILTERED_PAGE_TARGET = 20
+        const val MAX_FILTER_FILL_PAGES = 10
     }
 }

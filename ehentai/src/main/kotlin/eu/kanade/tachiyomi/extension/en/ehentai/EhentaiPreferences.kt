@@ -16,6 +16,8 @@ import eu.kanade.tachiyomi.extension.en.ehentai.Constants.PREF_CUSTOM_DOMAIN
 import eu.kanade.tachiyomi.extension.en.ehentai.Constants.PREF_DOMAIN
 import eu.kanade.tachiyomi.extension.en.ehentai.Constants.PREF_IGNEOUS
 import eu.kanade.tachiyomi.extension.en.ehentai.Constants.PREF_IMAGE_QUALITY
+import eu.kanade.tachiyomi.extension.en.ehentai.Constants.PREF_KEYWORD_FILTER_ENABLED
+import eu.kanade.tachiyomi.extension.en.ehentai.Constants.PREF_KEYWORD_FILTER_TERMS
 import eu.kanade.tachiyomi.extension.en.ehentai.Constants.PREF_MEMBER_ID
 import eu.kanade.tachiyomi.extension.en.ehentai.Constants.PREF_PASS_HASH
 import eu.kanade.tachiyomi.extension.en.ehentai.Constants.PREF_PRE_RESOLVE_IMAGES
@@ -117,6 +119,14 @@ class EhentaiPreferences(private val preferences: SharedPreferences) {
     val requestIntervalMs: Long
         get() = preferences.getString(PREF_REQUEST_INTERVAL, "0")?.toLongOrNull() ?: 0L
 
+    /** Keywords hidden from popular and search results. Empty when filtering is disabled. */
+    val blockedKeywords: List<String>
+        get() = if (preferences.getBoolean(PREF_KEYWORD_FILTER_ENABLED, false)) {
+            parseKeywordFilterTerms(preferences.getString(PREF_KEYWORD_FILTER_TERMS, null).orEmpty())
+        } else {
+            emptyList()
+        }
+
     fun isExhentai(): Boolean = domainValue == DOMAIN_EXHENTAI
 
     /**
@@ -130,6 +140,21 @@ class EhentaiPreferences(private val preferences: SharedPreferences) {
 
     fun setupPreferenceScreen(screen: PreferenceScreen) {
         val context = screen.context
+
+        SwitchPreferenceCompat(context).apply {
+            key = PREF_KEYWORD_FILTER_ENABLED
+            title = "关键词过滤"
+            summary = "开启后，在热门和搜索结果中隐藏标题或标签命中关键词的漫画"
+            setDefaultValue(false)
+        }.let { screen.addPreference(it) }
+
+        EditTextPreference(context).apply {
+            key = PREF_KEYWORD_FILTER_TERMS
+            title = "过滤关键词"
+            summary = "匹配标题和列表标签；使用逗号、分号或换行分隔，不区分大小写"
+            dialogTitle = "输入要隐藏的关键词"
+            setDefaultValue("")
+        }.let { screen.addPreference(it) }
 
         ListPreference(context).apply {
             key = PREF_DOMAIN

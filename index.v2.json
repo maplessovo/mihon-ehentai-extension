@@ -3,7 +3,7 @@
   "badgeLabel": "E-Hentai",
   "signingKey": "",
   "contact": {
-    "website": "https://github.com/xixiwan/mihon-ehentai-extension",
+    "website": "https://github.com/maplessovo/mihon-ehentai-extension",
     "discord": null
   },
   "extensionList": {
@@ -12,12 +12,12 @@
         "name": "E-Hentai",
         "packageName": "eu.kanade.tachiyomi.extension.en.ehentai",
         "resources": {
-          "apkUrl": "https://github.com/xixiwan/mihon-ehentai-extension/releases/download/v1.4.4/tachiyomi-en.ehentai-v1.4.4.apk",
-          "iconUrl": "https://raw.githubusercontent.com/xixiwan/mihon-ehentai-extension/main/icon/eu.kanade.tachiyomi.extension.en.ehentai.png"
+          "apkUrl": "https://raw.githubusercontent.com/maplessovo/mihon-ehentai-extension/main/apk/tachiyomi-en.ehentai-v1.4.6.apk",
+          "iconUrl": "https://raw.githubusercontent.com/maplessovo/mihon-ehentai-extension/main/icon/eu.kanade.tachiyomi.extension.en.ehentai.png"
         },
         "extensionLib": "1.4",
-        "versionCode": 4,
-        "versionName": "1.4.4",
+        "versionCode": 6,
+        "versionName": "1.4.6",
         "contentWarning": "CONTENT_WARNING_NSFW",
         "sources": [
           {

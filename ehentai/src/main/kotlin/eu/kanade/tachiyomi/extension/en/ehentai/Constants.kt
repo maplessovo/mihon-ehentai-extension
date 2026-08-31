@@ -35,6 +35,8 @@ object Constants {
     const val PREF_IMAGE_QUALITY = "image_quality"
     const val PREF_PRE_RESOLVE_IMAGES = "pre_resolve_images"
     const val PREF_REQUEST_INTERVAL = "request_interval"
+    const val PREF_KEYWORD_FILTER_ENABLED = "keyword_filter_enabled"
+    const val PREF_KEYWORD_FILTER_TERMS = "keyword_filter_keywords"
 
     // Domain preference values
     const val DOMAIN_EHENTAI = "e-hentai.org"

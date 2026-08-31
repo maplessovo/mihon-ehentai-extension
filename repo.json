@@ -1,9 +1,9 @@
 {
-  "index_v2": "https://raw.githubusercontent.com/xixiwan/mihon-ehentai-extension/main/index.v2.json",
+  "index_v2": "https://raw.githubusercontent.com/maplessovo/mihon-ehentai-extension/main/index.v2.json",
   "meta": {
     "name": "E-Hentai (Mihon extension)",
     "shortName": "E-Hentai",
-    "website": "https://github.com/xixiwan/mihon-ehentai-extension",
+    "website": "https://github.com/maplessovo/mihon-ehentai-extension",
     "signingKeyFingerprint": ""
   }
 }
